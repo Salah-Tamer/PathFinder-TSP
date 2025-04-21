@@ -5,9 +5,6 @@ from matplotlib.animation import FuncAnimation
 import matplotlib.patches as mpatches
 
 def main():
-    print("TSP Dynamic Animation")
-    print("--------------------")
-    
     # Create a small, clear example with 5 cities in a star pattern
     coordinates = [
         (30, 30),  # center
@@ -21,7 +18,7 @@ def main():
     solver = TSPSolver(coordinates=coordinates)
     
     # Solve to get the optimal path
-    best_path, best_distance = solver.solve_brute_force(visualize_steps=True, max_paths_to_store=15)
+    solver.solve_brute_force(visualize_steps=True)
     
     # Use the actual paths explored by the solver
     paths_to_show = []
@@ -45,7 +42,7 @@ def main():
         paths_to_show.append((path, title, distance))
     
     # Create the figure and axis for animation
-    plt.style.use('default')  # Use a clean style
+    plt.style.use('default')
     fig, ax = plt.subplots(figsize=(12, 9))
     fig.patch.set_facecolor('white')
     
@@ -112,7 +109,6 @@ def main():
     
     # Track the best distance found so far
     best_so_far = float('inf')
-    best_path_so_far = None
     
     # Function to initialize animation
     def init():
@@ -150,7 +146,7 @@ def main():
 
     # Function to update frame in animation
     def update(frame):
-        nonlocal best_so_far, best_path_so_far
+        nonlocal best_so_far
         
         # Get current path info
         path, title, distance = paths_to_show[frame]
@@ -159,7 +155,6 @@ def main():
         is_new_best = distance < best_so_far
         if is_new_best:
             best_so_far = distance
-            best_path_so_far = path
         
         # Color based on whether it's the best path found so far or the optimal path
         if "OPTIMAL" in title:
@@ -226,13 +221,13 @@ def main():
         # Update text elements
         if "OPTIMAL" in title:
             title_text.set_text(f"OPTIMAL SOLUTION FOUND")
-            title_text.set_color('#28a745')  # Bootstrap green
+            title_text.set_color('#28a745')
         elif is_new_best:
             title_text.set_text(f"NEW BEST PATH FOUND")
-            title_text.set_color('#5cb85c')  # Lighter green
+            title_text.set_color('#5cb85c')
         else:
             title_text.set_text(f"Exploring Path Option {frame+1}")
-            title_text.set_color('#212529')  # Bootstrap dark
+            title_text.set_color('#212529')
         
         # Current distance with consistent formatting
         distance_text.set_text(f"{distance:.2f}")
@@ -246,11 +241,11 @@ def main():
         # Best distance so far with consistent formatting
         if best_so_far < float('inf'):
             best_text.set_text(f"{best_so_far:.2f}")
-            best_text.set_color('#28a745')  # Always green for best
+            best_text.set_color('#28a745')
             best_text.set_fontweight('bold')
         else:
             best_text.set_text("N/A")
-            best_text.set_color('#6c757d')  # Bootstrap gray
+            best_text.set_color('#6c757d')
         
         # Progress indicator
         progress_text.set_text(f"Step {frame+1} of {len(paths_to_show)}")
@@ -258,9 +253,8 @@ def main():
         return line, title_text, distance_text, best_text, progress_text
 
     # Create animation
-    print("Creating animation... Please wait...")
     ani = FuncAnimation(fig, update, frames=len(paths_to_show),
-                      init_func=init, blit=True, interval=2000, repeat=True)
+                       init_func=init, blit=True, interval=2000, repeat=False)
     
     # Show the animation
     plt.suptitle('Traveling Salesman Problem', 
@@ -268,6 +262,9 @@ def main():
     
     plt.tight_layout(rect=[0, 0.0, 1, 0.95])
     plt.show()
+    
+    # Display the final optimal path statically
+    solver.visualize()
 
 if __name__ == "__main__":
-    main() 
+    main()

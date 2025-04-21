@@ -55,8 +55,6 @@ class TSPSolver:
     
     def solve_brute_force(self, visualize_steps=False, max_paths_to_store=100):
         """
-        Solve TSP using brute force approach (all permutations)
-        
         Args:
             visualize_steps: If True, store paths for step-by-step visualization
             max_paths_to_store: Maximum number of paths to store for visualization

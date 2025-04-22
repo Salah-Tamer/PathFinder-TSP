@@ -1,4 +1,5 @@
 import numpy as np
+import math 
 import matplotlib.pyplot as plt
 import itertools
 import time
@@ -55,6 +56,8 @@ class TSPSolver:
     
     def solve_brute_force(self, visualize_steps=False, max_paths_to_store=100):
         """
+        Solve TSP using brute force approach (all permutations)
+        
         Args:
             visualize_steps: If True, store paths for step-by-step visualization
             max_paths_to_store: Maximum number of paths to store for visualization
@@ -69,7 +72,8 @@ class TSPSolver:
         self.path_distances = []
         
         # Generate all permutations but don't store them all in memory at once
-        total_perms = np.math.factorial(self.num_cities - 1)
+       
+        total_perms = math.factorial(self.num_cities - 1)
         
         if visualize_steps:
             # Keep track of best paths and a sample of others
@@ -113,10 +117,53 @@ class TSPSolver:
         self.best_distance = best_distance
         self.best_path = best_path
         
-        print(f"Brute force solution found in {end_time - start_time:.4f} seconds")
+        print(f"Best time {end_time - start_time:.4f} seconds")
         print(f"Best distance: {best_distance:.2f}")
         
         return best_path, best_distance
+    
+    def solve_nearest_neighbor(self, start_city=0, visualize_steps=False):
+        """
+        Solve TSP using the Nearest Neighbor heuristic.
+        
+        Args:
+            start_city: Index of the starting city (default is 0)
+            visualize_steps: If True, store paths for step-by-step visualization
+        """
+        unvisited = set(range(self.num_cities))
+        path = [start_city]
+        current_city = start_city
+        unvisited.remove(current_city)
+        total_distance = 0
+        
+        if visualize_steps:
+            self.all_paths = []
+            self.path_distances = []
+
+        while unvisited:
+            next_city = min(unvisited, key=lambda city: self.distances[current_city][city])
+            total_distance += self.distances[current_city][next_city]
+            current_city = next_city
+            path.append(current_city)
+            unvisited.remove(current_city)
+            
+            if visualize_steps:
+                temp_path = path + [start_city]
+                self.all_paths.append(tuple(temp_path))
+                self.path_distances.append(total_distance + self.distances[current_city][start_city])
+        
+        # Return to start city
+        path.append(start_city)
+        total_distance += self.distances[current_city][start_city]
+
+        self.best_path = tuple(path)
+        self.best_distance = total_distance
+        
+        print(f"Nearest Neighbor solution from city {start_city}:")
+        print(f"Path: {self.best_path}")
+        print(f"Total Distance: {self.best_distance:.2f}")
+        
+        return self.best_path, self.best_distance
     
     def visualize(self, path=None, save_path=None):
         """Visualize the TSP solution"""
@@ -271,4 +318,4 @@ class TSPSolver:
             "best_distance": self.best_distance,
             "num_cities": self.num_cities,
             "coordinates": self.coordinates.tolist()
-        } 
+        }

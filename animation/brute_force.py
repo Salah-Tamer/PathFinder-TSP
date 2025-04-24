@@ -1,8 +1,13 @@
-from tsp_solver import TSPSolver
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import matplotlib.patches as mpatches
+import sys
+import os
+
+# Add the parent directory to the Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from tsp_solver import TSPSolver
 
 def main():
     # Create example with 5 cities in a star pattern

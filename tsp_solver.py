@@ -159,9 +159,6 @@ class TSPSolver:
         self.best_path = tuple(path)
         self.best_distance = total_distance
         
-        print(f"Nearest Neighbor solution from city {start_city}:")
-        print(f"Path: {self.best_path}")
-        print(f"Total Distance: {self.best_distance:.2f}")
         
         return self.best_path, self.best_distance
     
@@ -197,13 +194,6 @@ class TSPSolver:
         plt.show()
     
     def visualize_step_by_step(self, interval=500, save_animation=None):
-        """
-        Create a step-by-step animation of the path search process
-        
-        Args:
-            interval: Time interval between frames in milliseconds
-            save_animation: Filename to save the animation as MP4 (requires ffmpeg)
-        """
         if not self.all_paths:
             print("No path data available. Run solve_brute_force(visualize_steps=True) first.")
             return

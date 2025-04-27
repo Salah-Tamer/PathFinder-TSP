@@ -11,14 +11,66 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tsp_solver import TSPSolver
 
-def visualize_nearest_neighbor():
-    coordinates = [
-        (30, 30), 
-        (10, 30), 
-        (50, 30), 
-        (30, 10), 
-        (30, 50)
-    ]
+def visualize_nearest_neighbor(coordinates=None, custom_style=None, show_plot=False, fig=None, ax=None, update_status_callback=None):
+    """
+    Visualize the Nearest Neighbor algorithm solving the TSP problem
+    
+    Args:
+        coordinates: Optional list of city coordinates. If None, defaults to a star pattern.
+        custom_style: Optional dictionary with custom styling parameters.
+        show_plot: Whether to call plt.show() at the end (True for standalone, False for embedding)
+        fig: Optional matplotlib Figure to use instead of creating a new one
+        ax: Optional matplotlib Axes to use instead of creating new ones
+        update_status_callback: Optional callback function to update UI status with (title, distance, time) parameters
+    
+    Returns:
+        The animation object for further manipulation
+    """
+    # Use provided coordinates or create default example
+    if coordinates is None:
+        coordinates = [
+            (30, 30),  # center
+            (10, 30),  # left
+            (50, 30),  # right
+            (30, 10),  # bottom
+            (30, 50),  # top
+        ]
+    
+    # Initialize default style settings
+    style = {
+        'fig_size': (12, 9),
+        'background_color': 'white',
+        'plot_bg_color': '#f8f8f8',
+        'city_color': 'blue',
+        'path_color': '#ff7f0e',
+        'current_city_color': 'red',
+        'next_city_color': 'green',
+        'city_size': 150,
+        'city_edge_color': 'white',
+        'city_edge_width': 2,
+        'city_alpha': 0.8,
+        'font_size': 16,
+        'animation_interval': 500,
+        'repeat': False,
+        'grid_alpha': 0.7,
+        'grid_color': 'gray',
+        'grid_linestyle': '--',
+        'x_min': None,
+        'x_max': None,
+        'y_min': None,
+        'y_max': None,
+        'title_size': 16,
+        'title': "TSP Nearest Neighbor Solution",
+        'label_size': 12,
+        'legend_size': 10,
+        'legend_loc': 'upper right',
+        'text_size': 12
+    }
+    
+    # Update style with custom settings if provided
+    if custom_style:
+        style.update(custom_style)
+    
     coords_array = np.array(coordinates)
 
     solver = TSPSolver(coordinates=coordinates)
@@ -26,53 +78,99 @@ def visualize_nearest_neighbor():
 
     if not solver.all_paths:
         print("No paths recorded. Check TSPSolver implementation.")
-        return
+        return None
 
-    print(f"Number of steps: {len(solver.all_paths)}")
-    print(f"Final distance: {solver.best_distance:.2f}")
+    # Create or use figure and axes
+    if fig is None or ax is None:
+        plt.style.use('default')
+        fig, ax = plt.subplots(figsize=style['fig_size'])
+        fig.patch.set_facecolor(style['background_color'])
+    else:
+        # Clear the axes for embedded mode
+        ax.clear()
+    
+    ax.set_facecolor(style['plot_bg_color'])
 
-    plt.style.use('default')
-    fig, ax = plt.subplots(figsize=(12, 9))
-    fig.patch.set_facecolor('white')
-    ax.set_facecolor('#f8f8f8')
+    city_dot = mpatches.Patch(color=style['city_color'], label='Cities')
+    path_line = mpatches.Patch(color=style['path_color'], label='Current Path')
+    current_city = mpatches.Patch(color=style['current_city_color'], label='Current City')
+    next_city = mpatches.Patch(color=style['next_city_color'], label='Next City')
 
-    city_dot = mpatches.Patch(color='blue', label='Cities')
-    path_line = mpatches.Patch(color='#ff7f0e', label='Current Path')
-    current_city = mpatches.Patch(color='red', label='Current City')
-    next_city = mpatches.Patch(color='green', label='Next City')
-
-    scatter = ax.scatter(coords_array[:, 0], coords_array[:, 1], c='blue', s=200, zorder=10)
-    for i, (x, y) in enumerate(coordinates):
-        ax.annotate(f"{i}", (x, y), fontsize=16, fontweight='bold', ha='center', va='center', color='white')
-
-    line, = ax.plot([], [], 'o-', color='#ff7f0e', linewidth=2.5, zorder=5)
-    current_marker = ax.scatter([], [], color='red', s=300, zorder=15, marker='o', edgecolors='white', linewidth=2)
-    next_marker = ax.scatter([], [], color='green', s=300, zorder=15, marker='o', edgecolors='white', linewidth=2)
-    arrow_marker = ax.arrow(0, 0, 0, 0, head_width=2, head_length=3, fc='#ff7f0e', ec='#ff7f0e', zorder=15)
+    scatter = ax.scatter(coords_array[:, 0], coords_array[:, 1], 
+                       c=style['city_color'], s=style['city_size'], zorder=10,
+                       edgecolor=style['city_edge_color'], linewidth=style['city_edge_width'],
+                       alpha=style['city_alpha'])
+    
+    # Create completely separate artists for the path line and markers
+    # Important: use explicit empty arrays rather than [], [] to avoid any automatic markers
+    path_line = ax.add_line(plt.Line2D(np.array([]), np.array([]), 
+                          color=style['path_color'], linewidth=3.5, zorder=5, solid_capstyle='round'))
+    
+    # Initialize empty markers for current and next cities
+    current_marker = ax.scatter(np.array([]), np.array([]), color=style['current_city_color'], 
+                              s=250, zorder=15, marker='o', edgecolors='white', linewidth=2)
+    next_marker = ax.scatter(np.array([]), np.array([]), color=style['next_city_color'], 
+                           s=250, zorder=15, marker='o', edgecolors='white', linewidth=2)
+    
+    # Calculate appropriate arrow size based on number of cities
+    arrow_width = min(3, max(1.5, 5 / np.sqrt(len(coordinates))))
+    arrow_length = min(4, max(2.0, 6 / np.sqrt(len(coordinates))))
+    
+    arrow_marker = ax.arrow(0, 0, 0, 0, head_width=arrow_width, head_length=arrow_length, 
+                          fc=style['path_color'], ec=style['path_color'], zorder=15)
     arrow_marker.set_visible(False)
 
-    title_text = ax.text(0.5, 1.02, '', transform=ax.transAxes, fontsize=12, fontweight='bold', ha='center')
-    progress_text = ax.text(0.02, 0.02, '', transform=ax.transAxes, fontsize=10, ha='left', va='bottom',
-                           bbox=dict(facecolor='white', alpha=0.7, edgecolor='#cccccc', boxstyle='round,pad=0.2'))
+    title_text = ax.text(0.5, 1.02, '', transform=ax.transAxes, 
+                       fontsize=style['text_size'], fontweight='bold', ha='center')
+    progress_text = ax.text(0.02, 0.02, '', transform=ax.transAxes, 
+                          fontsize=style['text_size'], ha='left', va='bottom',
+                          bbox=dict(facecolor='white', alpha=0.7, 
+                                   edgecolor='#cccccc', boxstyle='round,pad=0.2'))
 
     def init():
         x_min, x_max = coords_array[:, 0].min(), coords_array[:, 0].max()
         y_min, y_max = coords_array[:, 1].min(), coords_array[:, 1].max()
-        margin = 10
-        ax.set_xlim(x_min - margin, x_max + margin)
-        ax.set_ylim(y_min - margin, y_max + margin)
-        ax.set_xlabel('X Coordinate', fontsize=12)
-        ax.set_ylabel('Y Coordinate', fontsize=12)
-        ax.grid(True, linestyle='--', alpha=0.7)
-        ax.legend(handles=[city_dot, path_line, current_city, next_city], loc='upper right', framealpha=0.9, fontsize=10)
+        margin = max(10, (x_max - x_min) * 0.1)  # Adaptive margin
+        
+        # Use provided limits if available, otherwise calculate based on data
+        ax_x_min = style['x_min'] if style['x_min'] is not None else x_min - margin
+        ax_x_max = style['x_max'] if style['x_max'] is not None else x_max + margin
+        ax_y_min = style['y_min'] if style['y_min'] is not None else y_min - margin
+        ax_y_max = style['y_max'] if style['y_max'] is not None else y_max + margin
+        
+        ax.set_xlim(ax_x_min, ax_x_max)
+        ax.set_ylim(ax_y_min, ax_y_max)
+        ax.set_xlabel('X Coordinate', fontsize=style['label_size'])
+        ax.set_ylabel('Y Coordinate', fontsize=style['label_size'])
+        
+        # Apply grid styling
+        ax.grid(True, linestyle=style['grid_linestyle'], alpha=style['grid_alpha'], color=style['grid_color'])
+        
+        # Set title
+        ax.set_title(style['title'], fontsize=style['title_size'], fontweight='bold')
+        
+        # Remove spines for a cleaner look
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        
+        # Create new legend objects to ensure clean display
+        city_dot_legend = mpatches.Patch(color=style['city_color'], label='Cities')
+        path_line_legend = mpatches.Patch(color=style['path_color'], label='Current Path')
+        current_city_legend = mpatches.Patch(color=style['current_city_color'], label='Current City')
+        next_city_legend = mpatches.Patch(color=style['next_city_color'], label='Next City')
+        
+        ax.legend(handles=[city_dot_legend, path_line_legend, current_city_legend, next_city_legend], 
+                loc=style['legend_loc'], framealpha=0.9, fontsize=style['legend_size'])
 
-        line.set_data([], [])
+        # Reset all elements to initial state
+        path_line.set_data(np.array([]), np.array([]))
         current_marker.set_offsets(np.empty((0, 2)))
         next_marker.set_offsets(np.empty((0, 2)))
         arrow_marker.set_visible(False)
         title_text.set_text('')
         progress_text.set_text('')
-        return line, current_marker, next_marker, arrow_marker, title_text, progress_text
+        
+        return path_line, current_marker, next_marker, arrow_marker, title_text, progress_text
 
     def update(frame):
         path = solver.all_paths[frame]
@@ -81,41 +179,65 @@ def visualize_nearest_neighbor():
         current_path = list(path[:current_path_length])
         path_coords = coords_array[current_path]
 
-        line.set_data(path_coords[:, 0], path_coords[:, 1])
+        # Update path line data
+        path_line.set_data(path_coords[:, 0], path_coords[:, 1])
 
+        # Clear all markers first to avoid artifacts
+        current_marker.set_offsets(np.empty((0, 2)))
+        next_marker.set_offsets(np.empty((0, 2)))
+
+        # Only then set new marker positions
         if len(current_path) >= 2:
             current_city_idx = current_path[-1] if frame < len(solver.all_paths) - 1 else current_path[-2]
-            current_marker.set_offsets([coords_array[current_city_idx]])
-        else:
-            current_marker.set_offsets(np.empty((0, 2)))
-
+            current_pos = coords_array[current_city_idx].reshape(1, 2)
+            current_marker.set_offsets(current_pos)
+        
         if frame < len(solver.all_paths) - 1:
             next_path = solver.all_paths[frame + 1]
             next_city_idx = next_path[current_path_length] if current_path_length < len(next_path) else path[0]
+            next_pos = coords_array[next_city_idx].reshape(1, 2)
+            next_marker.set_offsets(next_pos)
         else:
             next_city_idx = path[0]
-        next_marker.set_offsets([coords_array[next_city_idx]])
+            next_pos = coords_array[next_city_idx].reshape(1, 2)
+            next_marker.set_offsets(next_pos)
 
+        # Clear and update arrow
+        arrow_marker.set_visible(False)
         if len(current_path) >= 2:
             x1, y1 = path_coords[-2]
             x2, y2 = path_coords[-1]
             dx, dy = x2 - x1, y2 - y1
             length = np.sqrt(dx**2 + dy**2)
-            scale = 0.8 if length > 20 else 0.6
+            scale = 0.85 if length > 20 else 0.7
             arrow_marker.set_data(x=x1, y=y1, dx=dx*scale, dy=dy*scale)
             arrow_marker.set_visible(True)
-        else:
-            arrow_marker.set_visible(False)
 
-        title_text.set_text(f"Building Path - Step {frame+1}/{len(solver.all_paths)-1}" if frame < len(solver.all_paths) - 1 else "Final Path")
+        # Set title text and format
+        step_text = "Final Path" if frame == len(solver.all_paths) - 1 else f"Step {frame+1}/{len(solver.all_paths)-1}"
+        title_text.set_text(f"{step_text} - Distance: {distance:.2f}")
         progress_text.set_text(f"Step {frame+1} of {len(solver.all_paths)}")
 
-        return line, current_marker, next_marker, arrow_marker, title_text, progress_text
+        # Call the status update callback if provided
+        if update_status_callback:
+            status_title = f"Nearest Neighbor - {step_text}"
+            update_status_callback(status_title, distance, frame * 0.2)  # Estimated time
 
-    ani = FuncAnimation(fig, update, frames=len(solver.all_paths), init_func=init, blit=True, interval=500, repeat=False)
-    plt.suptitle('TSP Using Nearest Neighbor', fontsize=16, fontweight='bold', y=0.98)
-    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
-    plt.show()
+        # Return all the artists that need to be updated
+        return path_line, current_marker, next_marker, arrow_marker, title_text, progress_text
+
+    ani = FuncAnimation(fig, update, frames=len(solver.all_paths), 
+                     init_func=init, blit=True, 
+                     interval=style['animation_interval'], 
+                     repeat=style['repeat'])
+    
+    if show_plot:
+        plt.suptitle('TSP Using Nearest Neighbor', fontsize=16, fontweight='bold', y=0.98)
+        plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+        plt.show()
+    
+    return ani
 
 if __name__ == "__main__":
-    visualize_nearest_neighbor()
+    # When run as a standalone script, show the plot
+    visualize_nearest_neighbor(show_plot=True)

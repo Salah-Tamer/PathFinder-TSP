@@ -24,7 +24,7 @@ class ModernButton(tk.Canvas):
     def __init__(self, master=None, text="Button", command=None, width=120, height=40, 
                  corner_radius=10, bg_color="#4a86e8", fg_color="white", 
                  hover_color="#3a76d8", **kwargs):
-        super().__init__(master, width=width, height=height, 
+        super().__init__(master, width=width, height=height,
                          highlightthickness=0, background="#f8f9fa", **kwargs)
         self.command = command
         self.bg_color = bg_color
@@ -32,6 +32,10 @@ class ModernButton(tk.Canvas):
         self.corner_radius = corner_radius
         self.current_color = bg_color
         
+        self.inner_pad = 3
+      
+        
+
         # Draw button
         self.draw_button(text, fg_color)
         
@@ -43,13 +47,16 @@ class ModernButton(tk.Canvas):
     
     def draw_button(self, text, fg_color):
         self.delete("all")
+        pad = self.inner_pad
+        width = self.winfo_reqwidth()
+        height = self.winfo_reqheight()
         # Draw rounded rectangle
-        self.create_rounded_rect(0, 0, self.winfo_reqwidth(), self.winfo_reqheight(), 
-                                self.corner_radius, fill=self.current_color)
+        self.create_rounded_rect(pad, pad, width - pad, height - pad, 
+                                 self.corner_radius, fill=self.current_color)
         
         # Draw text
-        self.create_text(self.winfo_reqwidth()/2, self.winfo_reqheight()/2, 
-                        text=text, fill=fg_color, font=("Monteserrat", 11, "bold"))
+        self.create_text(width / 2, height / 2, 
+                         text=text, fill=fg_color, font=("Montserrat", 10, "bold"))
     
     def create_rounded_rect(self, x1, y1, x2, y2, radius, **kwargs):
         # Create rounded rectangle
@@ -66,6 +73,7 @@ class ModernButton(tk.Canvas):
             x1, y2-radius,
             x1, y1+radius,
             x1, y1
+            
         ]
         return self.create_polygon(points, smooth=True, **kwargs)
     
@@ -151,6 +159,7 @@ class TSPVisualizer:
         self.generations = tk.IntVar(value=100)
         self.mutation_rate = tk.DoubleVar(value=0.1)
         self.animation = None
+        self.solving_time = 0
         
         # Configure ttk style
         self.configure_style()
@@ -186,18 +195,21 @@ class TSPVisualizer:
         
         self.style.configure("TScale", background=self.colors["panel"])
         
-        # Configure specific elements
+        # Configure specific elements (without border for inner Labelframes)
         self.style.configure("Panel.TLabelframe", background=self.colors["panel"], 
                             relief="flat", borderwidth=0)
         self.style.configure("Panel.TLabelframe.Label", background=self.colors["panel"], 
                             foreground=self.colors["text"], font=self.header_font)
+        
+        # Configure scrollbar width
+        self.style.configure("Vertical.TScrollbar", width=15)
     
     def create_frames(self):
         # Main container with padding
         self.main_frame = ttk.Frame(self.root, style="TFrame", padding=15)
         self.main_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Header frame
+        # Header frame (no border)
         self.header_frame = ttk.Frame(self.main_frame, style="TFrame")
         self.header_frame.pack(fill=tk.X, pady=(0, 15))
         
@@ -205,19 +217,65 @@ class TSPVisualizer:
         self.content_frame = ttk.Frame(self.main_frame, style="TFrame")
         self.content_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Control panel on the left
-        self.control_container = ttk.Frame(self.content_frame, style="TFrame")
+        # Control panel on the left with scrollbar and border
+        self.control_container = tk.Frame(self.content_frame, 
+                                         background=self.colors["bg"],
+                                         highlightthickness=1, 
+                                         highlightbackground="#d3d3d3", 
+                                         width=230)
         self.control_container.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 15))
+        self.control_container.pack_propagate(False)
         
-        self.control_frame = ttk.Frame(self.control_container, style="Panel.TFrame", padding=15)
+        # Create canvas with a fixed height to ensure scrollbar appears
+        self.control_canvas = tk.Canvas(self.control_container, highlightthickness=0, bg=self.colors["bg"], width=200, height=600)
+        
+        # Create scrollbar with a wrapper frame to control its height
+        self.scrollbar_wrapper = ttk.Frame(self.control_container, width=20, height=200)
+        self.scrollbar_wrapper.pack(side="right", fill="y", expand=False)
+        self.scrollbar_wrapper.pack_propagate(False)
+        
+        # Center the scrollbar vertically within the wrapper frame
+        self.scrollbar = ttk.Scrollbar(self.scrollbar_wrapper, orient="vertical", command=self.control_canvas.yview)
+        self.scrollbar.pack(side="right", fill="y", pady=(0, 0))
+        
+        self.scrollable_frame = ttk.Frame(self.control_canvas, style="TFrame")
+        
+        # Configure the canvas
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.control_canvas.configure(
+                scrollregion=self.control_canvas.bbox("all")
+            )
+        )
+        
+        self.control_canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.control_canvas.configure(yscrollcommand=self.scrollbar.set)
+        
+        # Pack the canvas with a small gap on the right to separate it from the scrollbar
+        self.control_canvas.pack(side="left", fill="both", expand=False, padx=(0, 5))
+        
+        # Bind mousewheel for scrolling
+        self.control_canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+        
+        # Now create the control frame inside the scrollable frame
+        self.control_frame = ttk.Frame(self.scrollable_frame, style="Panel.TFrame", padding=15)
         self.control_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Visualization panel on the right
-        self.viz_container = ttk.Frame(self.content_frame, style="TFrame")
+        # Visualization panel on the right with border
+        self.viz_container = tk.Frame(self.content_frame,
+                                     background=self.colors["panel"],
+                                     highlightthickness=1,  
+                                     highlightbackground="#d3d3d3")  
         self.viz_container.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         
         self.viz_frame = ttk.Frame(self.viz_container, style="Panel.TFrame", padding=15)
         self.viz_frame.pack(fill=tk.BOTH, expand=True)
+    
+    def _on_mousewheel(self, event):
+        # Reduce scroll distance by scaling the delta
+        scroll_step = int(-1 * (event.delta / 120) * 0.5)  # Scale by 0.5 to make scrolling shorter
+        if scroll_step != 0:  # Only scroll if the step is non-zero
+            self.control_canvas.yview_scroll(scroll_step, "units")
     
     def create_header(self):
         # Logo/Title area
@@ -271,6 +329,10 @@ class TSPVisualizer:
         distance_label.pack(anchor=tk.E, pady=2)
     
     def create_controls(self):
+        # Remove placeholder content before adding actual controls
+        for widget in self.control_frame.winfo_children():
+            widget.destroy()
+        
         # Algorithm selection panel
         algo_frame = ttk.LabelFrame(self.control_frame, text="Select Algorithm", 
                                    style="Panel.TLabelframe", padding=15)
@@ -403,7 +465,7 @@ class TSPVisualizer:
         # Generate Cities button
         generate_btn = ModernButton(btn_frame, text="Generate Cities", 
                                    command=self.generate_random_cities, 
-                                   width=200, height=40, 
+                                   width=180, height=40, 
                                    bg_color=self.colors["accent"], 
                                    hover_color=self.colors["accent_dark"])
         generate_btn.pack(fill=tk.X, pady=5)
@@ -411,7 +473,7 @@ class TSPVisualizer:
         # Run Algorithm button
         run_btn = ModernButton(btn_frame, text="Run Algorithm", 
                               command=self.run_algorithm, 
-                              width=200, height=40, 
+                              width=180, height=40, 
                               bg_color=self.colors["success"], 
                               hover_color="#218838")
         run_btn.pack(fill=tk.X, pady=5)
@@ -419,7 +481,7 @@ class TSPVisualizer:
         # Stop button
         stop_btn = ModernButton(btn_frame, text="Stop", 
                                command=self.stop_animation, 
-                               width=200, height=40, 
+                               width=180, height=40, 
                                bg_color=self.colors["danger"], 
                                hover_color="#c82333")
         stop_btn.pack(fill=tk.X, pady=5)
@@ -427,7 +489,7 @@ class TSPVisualizer:
         # Clear button
         clear_btn = ModernButton(btn_frame, text="Clear", 
                                 command=self.clear, 
-                                width=200, height=40, 
+                                width=180, height=40, 
                                 bg_color=self.colors["warning"], 
                                 hover_color="#e0a800",
                                 fg_color=self.colors["text"])
@@ -639,6 +701,9 @@ class TSPVisualizer:
         from animation.brute_force import visualize_brute_force
         
         try:
+            # Measure actual solving time
+            start_time = time.time()
+            
             # Use the external visualization function, but with our figure/axes
             ani = visualize_brute_force(
                 coordinates=self.cities,
@@ -648,6 +713,9 @@ class TSPVisualizer:
                 ax=self.ax,
                 update_status_callback=update_status
             )
+            
+            # Store the actual solving time
+            self.solving_time = time.time() - start_time
             
             # Store the animation object so we can stop it later
             self.animation = ani
@@ -718,6 +786,9 @@ class TSPVisualizer:
         from animation.nearest_neighbor import visualize_nearest_neighbor
         
         try:
+            # Measure actual solving time
+            start_time = time.time()
+            
             # Use the external visualization function, but with our figure/axes
             ani = visualize_nearest_neighbor(
                 coordinates=self.cities,
@@ -728,18 +799,20 @@ class TSPVisualizer:
                 update_status_callback=update_status
             )
             
+            # Store the actual solving time
+            self.solving_time = time.time() - start_time
+            
             # Store the animation object so we can stop it later
             self.animation = ani
             
             # Update the matplotlib figure in our canvas
             self.canvas.draw()
             
-             # Enable resizing support - redraw canvas if window is resized
+            # Enable resizing support - redraw canvas if window is resized
             def on_resize(event):
                 self.canvas.draw_idle()
             
             self.fig.canvas.mpl_connect('resize_event', on_resize)
-            
             
         except Exception as e:
             messagebox.showerror("Error", f"Failed to run Nearest Neighbor: {str(e)}")
@@ -797,7 +870,7 @@ class TSPVisualizer:
             # Create a TSPSolver instance with the current cities
             tsp_solver = TSPSolver(coordinates=self.cities)
             
-            # Run the genetic algorithm
+            # Run the genetic algorithm and measure only the solving time
             start_time = time.time()
             tsp_solver.solve_genetic(
                 pop_size=self.population_size.get(),
@@ -806,11 +879,9 @@ class TSPVisualizer:
                 visualize_steps=True,
                 max_paths_to_store=20
             )
-            solving_end_time = time.time()
-            self.solving_time = solving_end_time - start_time
-
-
-            # Calculate best distance after solving
+            self.solving_time = time.time() - start_time  # This is the actual algorithm runtime
+            
+            # Store the best distance
             self.best_distance = min(tsp_solver.path_distances)
 
             # Check if paths are available for animation
@@ -839,9 +910,6 @@ class TSPVisualizer:
             frames_per_path = tsp_solver.num_cities + 1  # +1 for the return to start
             total_frames = len(tsp_solver.all_paths) * frames_per_path
             
-            # Start timing the animation
-            self.animation_start_time = time.time()
-
             # Animation update function
             def update(frame):
                 # Clear the tour plot for the new frame
@@ -908,11 +976,11 @@ class TSPVisualizer:
                 self.ax_tour.set_xlim(custom_style['x_min'], custom_style['x_max'])
                 self.ax_tour.set_ylim(custom_style['y_min'], custom_style['y_max'])
 
-                # Highlight the current generation on the fitness plot
+                # Update fitness plot
                 self.ax_fitness.clear()
                 self.ax_fitness.plot(generations, distances, 'b-', label='Best Distance')
-                self.ax_fitness.scatter([path_idx], [distances[path_idx]], c='red', s=100, marker='o', 
-                                       label='Current Generation')
+                self.ax_fitness.scatter([path_idx], [distances[path_idx]], c='red', s=custom_style['city_size'], 
+                                       marker='o', label='Current Generation')
                 self.ax_fitness.set_xlabel('Sampled Generation', fontsize=custom_style['label_size'])
                 self.ax_fitness.set_ylabel('Distance', fontsize=custom_style['label_size'])
                 self.ax_fitness.set_title('Genetic Algorithm Convergence', fontsize=custom_style['title_size'])
@@ -920,17 +988,14 @@ class TSPVisualizer:
                                      alpha=custom_style['grid_alpha'], color=custom_style['grid_color'])
                 self.ax_fitness.legend(fontsize=custom_style['legend_size'], loc=custom_style['legend_loc'])
                 
-                # Update dynamic status
-                current_time = time.time()
-                elapsed_time = current_time - self.animation_start_time
+                # Update dynamic status - always show the actual solving time, not animation time
                 distance = tsp_solver.path_distances[path_idx]
 
                 # If last frame, show best solution
                 if frame == total_frames - 1:
-                    
-                    update_status("Best Solution Found", self.best_distance, elapsed_time)
+                    update_status("Best Solution Found", self.best_distance, self.solving_time)
                 else:
-                    update_status(f"Generation {path_idx+1}", distance, elapsed_time)
+                    update_status(f"Generation {path_idx+1}", distance, self.solving_time)
 
             # Create the animation
             ani = FuncAnimation(self.fig, update, frames=total_frames, 

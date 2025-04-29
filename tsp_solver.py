@@ -1,4 +1,3 @@
-
 import numpy as np
 import math
 import matplotlib.pyplot as plt
@@ -11,6 +10,8 @@ import matplotlib.patches as mpatches
 class TSPSolver:
     def __init__(self, coordinates=None, num_cities=None):
         """
+        Initialize TSP Solver with either provided coordinates or random cities
+        
         Args:
             coordinates: List of (x, y) coordinates for each city
             num_cities: Number of cities to generate randomly if coordinates not provided
@@ -34,6 +35,7 @@ class TSPSolver:
         # For visualization
         self.all_paths = []
         self.path_distances = []
+        self.best_path_over_time = []  # For GA progress tracking
         
     def _calculate_distances(self):
         """Calculate the distance matrix between all pairs of cities"""
@@ -52,6 +54,15 @@ class TSPSolver:
         """Calculate the total distance of a path using pre-computed distances"""
         return sum(self.distances[path[i], path[i+1]] for i in range(len(path)-1))
     
+    def calculate_distance(self, route):
+        """Alternative distance calculation that includes return to start"""
+        total_distance = 0
+        for i in range(len(route) - 1):
+            total_distance += self.distances[route[i]][route[i + 1]]
+        total_distance += self.distances[route[-1]][route[0]]  # Return to start
+        return total_distance
+    
+    # Genetic Algorithm Methods
     def create_population(self, pop_size):
         """Create an initial population of random routes"""
         population = []
@@ -60,16 +71,24 @@ class TSPSolver:
             population.append(route)
         return population
     
-    def select_parents(self, population):
-        """Select two parents using fitness-based probability"""
-        fitness_scores = [1 / self._calculate_path_distance(list(route) + [route[0]]) for route in population]
-        total_fitness = sum(fitness_scores)
-        probabilities = [fitness_score / total_fitness for fitness_score in fitness_scores]
-        parents = random.choices(population, probabilities, k=2)
+    def select_parents(self, population, method='roulette'):
+        """Select two parents using specified selection method"""
+        if method == 'roulette':
+            fitness_scores = [1 / self.calculate_distance(route) for route in population]
+            total_fitness = sum(fitness_scores)
+            probabilities = [fitness_score / total_fitness for fitness_score in fitness_scores]
+            parents = random.choices(population, probabilities, k=2)
+        elif method == 'tournament':
+            tournament_size = min(5, len(population))
+            parents = []
+            for _ in range(2):
+                contestants = random.sample(population, tournament_size)
+                best = min(contestants, key=lambda x: self.calculate_distance(x))
+                parents.append(best)
         return parents
     
     def crossover(self, parent1, parent2):
-        """Perform crossover to create an offspring"""
+        """Perform ordered crossover to create offspring"""
         start, end = sorted(random.sample(range(len(parent1)), 2))
         offspring = [-1] * len(parent1)
         offspring[start:end+1] = parent1[start:end+1]
@@ -83,15 +102,16 @@ class TSPSolver:
         return offspring
     
     def mutate(self, route, mutation_rate=0.01):
-        """Mutate a route by swapping two cities with a given probability"""
+        """Mutate a route by swapping two cities with given probability"""
         if random.random() < mutation_rate:
             idx1, idx2 = random.sample(range(len(route)), 2)
             route[idx1], route[idx2] = route[idx2], route[idx1]
         return route
     
-    def genetic_algorithm(self, pop_size=100, generations=500, mutation_rate=0.01, visualize_steps=False, max_paths_to_store=100):
+    def genetic_algorithm(self, pop_size=100, generations=500, mutation_rate=0.01, 
+                         visualize_steps=False, max_paths_to_store=100):
         """
-        Run the genetic algorithm to solve TSP
+        Run genetic algorithm to solve TSP
         
         Args:
             pop_size: Size of the population
@@ -110,11 +130,11 @@ class TSPSolver:
         
         for generation in range(generations):
             # Sort population by fitness
-            population = sorted(population, key=lambda route: self._calculate_path_distance(list(route) + [route[0]]))
+            population = sorted(population, key=lambda route: self.calculate_distance(route))
             
             # Update best solution
             current_best_route = population[0]
-            current_best_distance = self._calculate_path_distance(list(current_best_route) + [current_best_route[0]])
+            current_best_distance = self.calculate_distance(current_best_route)
             
             if current_best_distance < self.best_distance:
                 self.best_distance = current_best_distance
@@ -125,6 +145,9 @@ class TSPSolver:
                 self.all_paths.append(tuple(list(current_best_route) + [current_best_route[0]]))
                 self.path_distances.append(current_best_distance)
             
+            # Track progress
+            self.best_path_over_time.append((current_best_route, current_best_distance))
+            
             # Stop if optimal solution found (unlikely)
             if current_best_distance == 0:
                 break
@@ -132,7 +155,7 @@ class TSPSolver:
             # Create new population
             new_population = population[:2]  # Elitism: keep top 2
             while len(new_population) < pop_size:
-                parents = self.select_parents(population)
+                parents = self.select_parents(population, method='tournament')
                 offspring = self.crossover(parents[0], parents[1])
                 offspring = self.mutate(offspring, mutation_rate)
                 new_population.append(offspring)
@@ -146,8 +169,11 @@ class TSPSolver:
         
         return self.best_path, self.best_distance
     
+    # Brute Force Method
     def solve_brute_force(self, visualize_steps=False, max_paths_to_store=100):
         """
+        Solve TSP using brute force (only feasible for small problems)
+        
         Args:
             visualize_steps: If True, store paths for step-by-step visualization
             max_paths_to_store: Maximum number of paths to store for visualization
@@ -200,8 +226,11 @@ class TSPSolver:
         
         return best_path, best_distance
     
+    # Nearest Neighbor Method
     def solve_nearest_neighbor(self, start_city=0, visualize_steps=False):
         """
+        Solve TSP using nearest neighbor heuristic
+        
         Args:
             start_city: Index of the starting city (default is 0)
             visualize_steps: If True, store paths for step-by-step visualization
@@ -238,18 +267,29 @@ class TSPSolver:
         
         return self.best_path, self.best_distance
     
-    def solve_genetic(self, pop_size=100, generations=500, mutation_rate=0.01, visualize_steps=False, max_paths_to_store=100):
+    # Unified solve method
+    def solve(self, method='genetic', **kwargs):
         """
-        Solve TSP using the genetic algorithm
+        Unified solve method that calls appropriate algorithm
         
         Args:
-            pop_size: Size of the population
-            generations: Number of generations to run
-            mutation_rate: Probability of mutation
-            visualize_steps: If True, store paths for visualization
-            max_paths_to_store: Maximum number of paths to store for visualization
+            method: 'genetic', 'brute_force', or 'nearest_neighbor'
+            **kwargs: Additional arguments for specific algorithms
         """
-        return self.genetic_algorithm(pop_size, generations, mutation_rate, visualize_steps, max_paths_to_store)
+        if method == 'genetic':
+            return self.solve_genetic(**kwargs)
+        elif method == 'brute_force':
+            return self.solve_brute_force(**kwargs)
+        elif method == 'nearest_neighbor':
+            return self.solve_nearest_neighbor(**kwargs)
+        else:
+            raise ValueError(f"Unknown method: {method}")
+    
+    def solve_genetic(self, pop_size=100, generations=500, mutation_rate=0.01, 
+                     visualize_steps=False, max_paths_to_store=100):
+        """Wrapper for genetic algorithm"""
+        return self.genetic_algorithm(pop_size, generations, mutation_rate, 
+                                    visualize_steps, max_paths_to_store)
     
     def get_solution_info(self):
         """Return a dictionary with solution information"""

@@ -115,14 +115,6 @@ def visualize_nearest_neighbor(coordinates=None, custom_style=None, show_plot=Fa
     next_marker = ax.scatter(np.array([]), np.array([]), color=style['next_city_color'], 
                            s=250, zorder=15, marker='o', edgecolors='white', linewidth=2)
     
-    # Calculate appropriate arrow size based on number of cities
-    arrow_width = min(3, max(1.5, 5 / np.sqrt(len(coordinates))))
-    arrow_length = min(4, max(2.0, 6 / np.sqrt(len(coordinates))))
-    
-    arrow_marker = ax.arrow(0, 0, 0, 0, head_width=arrow_width, head_length=arrow_length, 
-                          fc=style['path_color'], ec=style['path_color'], zorder=15)
-    arrow_marker.set_visible(False)
-
     title_text = ax.text(0.5, 1.02, '', transform=ax.transAxes, 
                        fontsize=style['text_size'], fontweight='bold', ha='center')
     progress_text = ax.text(0.02, 0.02, '', transform=ax.transAxes, 
@@ -169,11 +161,10 @@ def visualize_nearest_neighbor(coordinates=None, custom_style=None, show_plot=Fa
         path_line.set_data(np.array([]), np.array([]))
         current_marker.set_offsets(np.empty((0, 2)))
         next_marker.set_offsets(np.empty((0, 2)))
-        arrow_marker.set_visible(False)
         title_text.set_text('')
         progress_text.set_text('')
         
-        return path_line, current_marker, next_marker, arrow_marker, title_text, progress_text
+        return path_line, current_marker, next_marker, title_text, progress_text
 
     def update(frame):
         path = solver.all_paths[frame]
@@ -196,8 +187,10 @@ def visualize_nearest_neighbor(coordinates=None, custom_style=None, show_plot=Fa
                 current_pos = coords_array[current_city_idx].reshape(1, 2)
                 current_marker.set_offsets(current_pos)
             else:
-                # On the last frame, do not show the current city marker
+                # On the last frame, do not show any markers
                 current_marker.set_offsets(np.empty((0, 2)))
+                next_marker.set_offsets(np.empty((0, 2)))
+                return path_line, current_marker, next_marker, title_text, progress_text
         
         if frame < len(solver.all_paths) - 1:
             next_path = solver.all_paths[frame + 1]
@@ -205,20 +198,8 @@ def visualize_nearest_neighbor(coordinates=None, custom_style=None, show_plot=Fa
             next_pos = coords_array[next_city_idx].reshape(1, 2)
             next_marker.set_offsets(next_pos)
         else:
-            next_city_idx = path[0]
-            next_pos = coords_array[next_city_idx].reshape(1, 2)
-            next_marker.set_offsets(next_pos)
-
-        # Clear and update arrow
-        arrow_marker.set_visible(False)
-        if len(current_path) >= 2:
-            x1, y1 = path_coords[-2]
-            x2, y2 = path_coords[-1]
-            dx, dy = x2 - x1, y2 - y1
-            length = np.sqrt(dx**2 + dy**2)
-            scale = 0.85 if length > 20 else 0.7
-            arrow_marker.set_data(x=x1, y=y1, dx=dx*scale, dy=dy*scale)
-            arrow_marker.set_visible(True)
+            # On the last frame, do not show any markers
+            next_marker.set_offsets(np.empty((0, 2)))
 
         # Set title text and format
         step_text = "Final Path" if frame == len(solver.all_paths) - 1 else f"Step {frame+1}/{len(solver.all_paths)-1}"
@@ -231,7 +212,7 @@ def visualize_nearest_neighbor(coordinates=None, custom_style=None, show_plot=Fa
             update_status_callback(status_title, distance, frame * 0.2)  # Estimated time
 
         # Return all the artists that need to be updated
-        return path_line, current_marker, next_marker, arrow_marker, title_text, progress_text
+        return path_line, current_marker, next_marker, title_text, progress_text
 
     ani = FuncAnimation(fig, update, frames=len(solver.all_paths), 
                      init_func=init, blit=True, 

@@ -13,6 +13,7 @@ from tsp_solver import TSPSolver
 import sys
 import time
 import matplotlib.gridspec as gridspec
+from animation.nearest_neighbor import DEFAULT_STYLE
 
 # Add the animation directory to the path
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'animation'))
@@ -743,35 +744,14 @@ class TSPVisualizer:
             messagebox.showwarning("Warning", "Please generate cities first!")
             return
         
-        # Define custom styling that matches our application's style
-        custom_style = {
-            'fig_size': (8, 6),
+        # Start with default style and update with application colors
+        custom_style = DEFAULT_STYLE.copy()
+        custom_style.update({
             'background_color': self.colors["panel"],
-            'plot_bg_color': '#f8f8f8',
             'city_color': self.colors["accent"],
             'path_color': self.colors["nearest_neighbor"],
-            'current_city_color': 'red',
-            'next_city_color': self.colors["success"],
-            'city_size': 200,  # Exactly match the size used in plot_cities
-            'city_edge_color': 'white',
-            'city_edge_width': 2,
-            'city_alpha': 0.8,
-            'font_size': 9,
-            'animation_interval': 500,
-            'repeat': False,
-            'grid_alpha': 0.3,
-            'grid_color': 'gray',
-            'grid_linestyle': '--',
-            'x_min': -5,
-            'x_max': 105,
-            'y_min': -5,
-            'y_max': 105,
-            'title_size': 18,
-            'title': "TSP Nearest Neighbor Solution",
-            'label_size': 14,
-            'legend_size': 8,
-            'legend_loc': 'lower right'
-        }
+            'next_city_color': self.colors["success"]
+        })
         
         # Update status for initial state
         self.status_var.set("Running Nearest Neighbor algorithm...")

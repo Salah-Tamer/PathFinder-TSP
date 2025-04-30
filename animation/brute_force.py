@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('TkAgg')  # Ensure interactive backend
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -5,8 +7,40 @@ import matplotlib.patches as mpatches
 import sys
 import os
 
+# Add the parent directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tsp_solver import TSPSolver
+
+# Default style configuration for TSP visualizations
+DEFAULT_STYLE = {
+    'fig_size': (8, 6),
+    'background_color': 'white',
+    'plot_bg_color': '#f8f8f8',
+    'city_color': '#4a86e8',  # accent color
+    'path_color': '#e74c3c',  # brute_force color
+    'best_path_color': '#2ecc71',  # success color
+    'new_best_color': '#28a745',  # success color
+    'city_size': 200,
+    'city_edge_color': 'white',
+    'city_edge_width': 2,
+    'city_alpha': 0.8,
+    'font_size': 9,
+    'animation_interval': 1000,
+    'repeat': False,
+    'grid_alpha': 0.3,
+    'grid_color': 'gray',
+    'grid_linestyle': '--',
+    'x_min': -5,
+    'x_max': 105,
+    'y_min': -5,
+    'y_max': 105,
+    'title_size': 18,
+    'title': "TSP Brute Force Solution",
+    'label_size': 14,
+    'legend_size': 8,
+    'legend_loc': 'lower right',
+    'text_size': 9
+}
 
 def visualize_brute_force(coordinates=None, custom_style=None, show_plot=False, fig=None, ax=None, update_status_callback=None):
     """
@@ -22,36 +56,8 @@ def visualize_brute_force(coordinates=None, custom_style=None, show_plot=False, 
         The animation object for further manipulation
     """
     
-    # Initialize default style settings
-    style = {
-        'fig_size': (12, 9),
-        'background_color': 'white',
-        'plot_bg_color': '#f8f8f8',
-        'city_color': 'blue',
-        'path_color': 'red',
-        'best_path_color': '#28a745',
-        'new_best_color': '#5cb85c',
-        'city_size': 200,
-        'city_edge_color': 'white',
-        'city_edge_width': 2,
-        'city_alpha': 0.8,
-        'font_size': 16,
-        'animation_interval': 2000,
-        'repeat': True,
-        'grid_alpha': 0.7,
-        'grid_color': 'gray',
-        'grid_linestyle': '--',
-        'x_min': None,
-        'x_max': None,
-        'y_min': None,
-        'y_max': None,
-        'title_size': 16,
-        'title': "TSP Brute Force Solution",
-        'label_size': 12,
-        'legend_size': 10,
-        'legend_loc': 'upper right',
-        'text_size': 12
-    }
+    # Initialize style with defaults
+    style = DEFAULT_STYLE.copy()
     
     # Update style with custom settings if provided
     if custom_style:

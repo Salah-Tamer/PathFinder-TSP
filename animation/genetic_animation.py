@@ -7,6 +7,7 @@ import os
 # Add the parent directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tsp_solver import TSPSolver
+from config.style_config import DEFAULT_STYLE
 
 def visualize_tsp(tsp_solver, path=None, save_path=None):
     """
@@ -17,30 +18,36 @@ def visualize_tsp(tsp_solver, path=None, save_path=None):
         path: Optional specific path to visualize (defaults to tsp_solver.best_path)
         save_path: Optional file path to save the plot (e.g., 'tsp_solution.png')
     """
-    plt.figure(figsize=(10, 8))
+    # Initialize style with defaults
+    style = DEFAULT_STYLE.copy()
+    
+    plt.figure(figsize=style['fig_size'])
     
     # Plot cities as scatter points
     plt.scatter(tsp_solver.coordinates[:, 0], tsp_solver.coordinates[:, 1], 
-                c='blue', s=100, label='Cities')
+                c=style['city_color'], s=style['city_size'], label='Cities')
     
     # Annotate city indices
     for i, (x, y) in enumerate(tsp_solver.coordinates):
-        plt.annotate(f"{i}", (x, y), fontsize=12)
+        plt.annotate(f"{i}", (x, y), fontsize=style['font_size'])
     
     # Plot the path (either provided or best_path)
     if path is not None:
         path_coords = tsp_solver.coordinates[list(path)]
-        plt.plot(path_coords[:, 0], path_coords[:, 1], 'r-', linewidth=2, label='Tour')
+        plt.plot(path_coords[:, 0], path_coords[:, 1], 
+                color=style['path_color'], linewidth=2, label='Tour')
     elif tsp_solver.best_path is not None:
         path_coords = tsp_solver.coordinates[list(tsp_solver.best_path)]
-        plt.plot(path_coords[:, 0], path_coords[:, 1], 'r-', linewidth=2, label='Tour')
+        plt.plot(path_coords[:, 0], path_coords[:, 1], 
+                color=style['path_color'], linewidth=2, label='Tour')
     
     # Set title and labels
-    plt.title(f'TSP Solution - {tsp_solver.num_cities} Cities - Distance: {tsp_solver.best_distance:.2f}')
-    plt.xlabel('X Coordinate')
-    plt.ylabel('Y Coordinate')
-    plt.legend()
-    plt.grid(True)
+    plt.title(f'TSP Solution - {tsp_solver.num_cities} Cities - Distance: {tsp_solver.best_distance:.2f}',
+             fontsize=style['title_size'])
+    plt.xlabel('X Coordinate', fontsize=style['label_size'])
+    plt.ylabel('Y Coordinate', fontsize=style['label_size'])
+    plt.legend(fontsize=style['legend_size'])
+    plt.grid(True, linestyle=style['grid_linestyle'], alpha=style['grid_alpha'], color=style['grid_color'])
     
     # Save or show the plot
     if save_path:
@@ -60,8 +67,11 @@ def animate_tsp(tsp_solver, save_path=None):
         print("No paths available for animation. Run solve_genetic with visualize_steps=True.")
         return
     
+    # Initialize style with defaults
+    style = DEFAULT_STYLE.copy()
+    
     # Set up the figure with two subplots: main plot for the tour, small plot for fitness
-    fig = plt.figure(figsize=(12, 8))
+    fig = plt.figure(figsize=style['fig_size'])
     ax_tour = fig.add_subplot(121)
     ax_fitness = fig.add_subplot(122)
 
@@ -69,11 +79,11 @@ def animate_tsp(tsp_solver, save_path=None):
     generations = list(range(len(tsp_solver.path_distances)))
     distances = tsp_solver.path_distances
     ax_fitness.plot(generations, distances, 'b-', label='Best Distance')
-    ax_fitness.set_xlabel('Sampled Generation')
-    ax_fitness.set_ylabel('Distance')
-    ax_fitness.set_title('Genetic Algorithm Convergence')
-    ax_fitness.grid(True)
-    ax_fitness.legend()
+    ax_fitness.set_xlabel('Sampled Generation', fontsize=style['label_size'])
+    ax_fitness.set_ylabel('Distance', fontsize=style['label_size'])
+    ax_fitness.set_title('Genetic Algorithm Convergence', fontsize=style['title_size'])
+    ax_fitness.grid(True, linestyle=style['grid_linestyle'], alpha=style['grid_alpha'], color=style['grid_color'])
+    ax_fitness.legend(fontsize=style['legend_size'])
 
     # Calculate frames: for each path, animate city-to-city movement
     frames_per_path = tsp_solver.num_cities + 1  # +1 for the return to start
@@ -101,15 +111,15 @@ def animate_tsp(tsp_solver, save_path=None):
 
         # Plot all cities except the current one as blue circles
         ax_tour.scatter(tsp_solver.coordinates[mask, 0], tsp_solver.coordinates[mask, 1], 
-                        c='blue', s=100, label='Cities')
+                        c=style['city_color'], s=style['city_size'], label='Cities')
         
         # Annotate city indices
         for i, (x, y) in enumerate(tsp_solver.coordinates):
-            ax_tour.annotate(f"{i}", (x, y), fontsize=12)
+            ax_tour.annotate(f"{i}", (x, y), fontsize=style['font_size'])
         
         # Calculate color based on generation (lighter for early, darker for later)
         progress = path_idx / (len(tsp_solver.all_paths) - 1) if len(tsp_solver.all_paths) > 1 else 1
-        color = (1 - progress * 0.5, 0, progress * 0.5)  # Light red to dark red
+        color = (1 - progress * 0.5, 0, progress * 0.5)
 
         # Draw the path
         if segment_idx == frames_per_path - 1:  # Last frame: close the loop
@@ -125,30 +135,31 @@ def animate_tsp(tsp_solver, save_path=None):
         # Plot the current city as a green star only, but not on the last frame
         if segment_idx < len(path):  # Only show current city marker if not on the last frame
             current_city = path_coords[segment_idx]
-            ax_tour.scatter(current_city[0], current_city[1], c='green', s=150, marker='*', 
+            ax_tour.scatter(current_city[0], current_city[1], c=style['next_city_color'], s=style['city_size']*1.5, marker='*', 
                             label='Current City')
 
         # Update title with generation and distance
         ax_tour.set_title(f'Generation {path_idx+1}/{len(tsp_solver.all_paths)} - '
-                         f'Distance: {tsp_solver.path_distances[path_idx]:.2f}')
-        ax_tour.set_xlabel('X Coordinate')
-        ax_tour.set_ylabel('Y Coordinate')
-        ax_tour.grid(True)
-        ax_tour.legend()
+                         f'Distance: {tsp_solver.path_distances[path_idx]:.2f}',
+                         fontsize=style['title_size'])
+        ax_tour.set_xlabel('X Coordinate', fontsize=style['label_size'])
+        ax_tour.set_ylabel('Y Coordinate', fontsize=style['label_size'])
+        ax_tour.grid(True, linestyle=style['grid_linestyle'], alpha=style['grid_alpha'], color=style['grid_color'])
+        ax_tour.legend(fontsize=style['legend_size'])
 
         # Highlight the current generation on the fitness plot
         ax_fitness.clear()
         ax_fitness.plot(generations, distances, 'b-', label='Best Distance')
-        ax_fitness.scatter([path_idx], [distances[path_idx]], c='red', s=100, marker='o', 
+        ax_fitness.scatter([path_idx], [distances[path_idx]], c='red', s=style['city_size'], marker='o', 
                           label='Current Generation')
-        ax_fitness.set_xlabel('Sampled Generation')
-        ax_fitness.set_ylabel('Distance')
-        ax_fitness.set_title('Genetic Algorithm Convergence')
-        ax_fitness.grid(True)
-        ax_fitness.legend()
+        ax_fitness.set_xlabel('Sampled Generation', fontsize=style['label_size'])
+        ax_fitness.set_ylabel('Distance', fontsize=style['label_size'])
+        ax_fitness.set_title('Genetic Algorithm Convergence', fontsize=style['title_size'])
+        ax_fitness.grid(True, linestyle=style['grid_linestyle'], alpha=style['grid_alpha'], color=style['grid_color'])
+        ax_fitness.legend(fontsize=style['legend_size'])
 
     # Create the animation
-    anim = FuncAnimation(fig, update, frames=total_frames, interval=100, repeat=False)
+    anim = FuncAnimation(fig, update, frames=total_frames, interval=style['animation_interval'], repeat=style['repeat'])
 
     # Show the animation
     plt.show()

@@ -825,7 +825,7 @@ class TSPVisualizer:
         
         # Define custom styling that matches our application's style
         custom_style = {
-            'fig_size': (10, 5),  # Reduced from (8, 6) to make it more compact
+            'fig_size': (12, 7),  # Increased both width and height for better proportions
             'background_color': self.colors["panel"],
             'plot_bg_color': '#f8f8f8',
             'city_color': self.colors["accent"],
@@ -835,7 +835,7 @@ class TSPVisualizer:
             'city_edge_color': 'white',
             'city_edge_width': 2,
             'city_alpha': 0.8,
-            'font_size': 8,
+            'font_size': 10,  # Slightly increased font size
             'animation_interval': 200,
             'repeat': False,
             'grid_alpha': 0.3,
@@ -845,10 +845,10 @@ class TSPVisualizer:
             'x_max': 105,
             'y_min': -5,
             'y_max': 105,
-            'title_size': 14,  # Reduced from 18
+            'title_size': 16,  # Increased title size
             'title': "TSP Genetic Algorithm Solution",
-            'label_size': 10,  # Reduced from 14
-            'legend_size': 7,  # Reduced from 8
+            'label_size': 12,  # Increased label size
+            'legend_size': 9,  # Increased legend size
             'legend_loc': 'lower right'
         }
 
@@ -889,8 +889,8 @@ class TSPVisualizer:
             self.ax_tour = self.fig.add_subplot(121)
             self.ax_fitness = self.fig.add_subplot(122)
             
-            # Adjust subplot spacing
-            self.fig.subplots_adjust(left=0.1, right=0.95, bottom=0.15, top=0.9, wspace=0.3)
+            # Adjust subplot spacing to make more room for labels and improve layout
+            self.fig.subplots_adjust(left=0.08, right=0.92, bottom=0.15, top=0.85, wspace=0.4)
             
             # Calculate frames: one per discovered path
             total_frames = len(tsp_solver.all_paths)
@@ -930,8 +930,6 @@ class TSPVisualizer:
                                          zorder=3)
 
                 # Update title with generation and distance
-                self.ax_tour.set_title(f'Generation {gen_idx+1}',
-                                      fontsize=custom_style['title_size'])
                 self.ax_tour.set_xlabel('X Coordinate', fontsize=custom_style['label_size'])
                 self.ax_tour.set_ylabel('Y Coordinate', fontsize=custom_style['label_size'])
                 self.ax_tour.grid(True, linestyle=custom_style['grid_linestyle'], 
@@ -947,7 +945,6 @@ class TSPVisualizer:
                                        marker='o', label='Current Generation')
                 self.ax_fitness.set_xlabel('Generation', fontsize=custom_style['label_size'])
                 self.ax_fitness.set_ylabel('Distance', fontsize=custom_style['label_size'])
-                self.ax_fitness.set_title('Convergence', fontsize=custom_style['title_size'])
                 self.ax_fitness.grid(True, linestyle=custom_style['grid_linestyle'], 
                                      alpha=custom_style['grid_alpha'], color=custom_style['grid_color'])
                 self.ax_fitness.legend(fontsize=custom_style['legend_size'], loc=custom_style['legend_loc'])

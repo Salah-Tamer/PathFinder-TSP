@@ -5,7 +5,7 @@ import os
 import matplotlib.pyplot as plt
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from tsp_solver import TSPSolver
+from TSPSolver import TSPSolver
 
 class TSPSolver:
     def __init__(self, coordinates=None, num_cities=None):

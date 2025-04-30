@@ -9,7 +9,7 @@ import os
 
 # Add the parent directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from tsp_solver import TSPSolver
+from TSPSolver import TSPSolver
 
 # Default style configuration for TSP visualizations
 DEFAULT_STYLE = {
@@ -191,9 +191,13 @@ def visualize_nearest_neighbor(coordinates=None, custom_style=None, show_plot=Fa
 
         # Only then set new marker positions
         if len(current_path) >= 2:
-            current_city_idx = current_path[-1] if frame < len(solver.all_paths) - 1 else current_path[-2]
-            current_pos = coords_array[current_city_idx].reshape(1, 2)
-            current_marker.set_offsets(current_pos)
+            if frame < len(solver.all_paths) - 1:
+                current_city_idx = current_path[-1]
+                current_pos = coords_array[current_city_idx].reshape(1, 2)
+                current_marker.set_offsets(current_pos)
+            else:
+                # On the last frame, do not show the current city marker
+                current_marker.set_offsets(np.empty((0, 2)))
         
         if frame < len(solver.all_paths) - 1:
             next_path = solver.all_paths[frame + 1]

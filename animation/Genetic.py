@@ -6,7 +6,7 @@ import os
 
 # Add the parent directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from tsp_solver import TSPSolver
+from TSPSolver import TSPSolver
 from config.style_config import DEFAULT_STYLE
 
 def visualize_tsp(tsp_solver, path=None, save_path=None):

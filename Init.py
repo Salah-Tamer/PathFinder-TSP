@@ -9,16 +9,16 @@ import matplotlib.colors as mcolors
 from PIL import Image, ImageTk, ImageDraw, ImageFilter, ImageFont
 import os
 import colorsys
-from tsp_solver import TSPSolver
+from TSPSolver import TSPSolver
 import sys
 import time
 import matplotlib.gridspec as gridspec
-from animation.nearest_neighbor import DEFAULT_STYLE
+from animation.NearestNeighbor import DEFAULT_STYLE
 
 # Add the animation directory to the path
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'animation'))
-from animation.nearest_neighbor import visualize_nearest_neighbor
-from animation.brute_force import visualize_brute_force
+from animation.NearestNeighbor import visualize_nearest_neighbor
+from animation.BruteForce import visualize_brute_force
 import matplotlib.patches as mpatches
 
 class ModernButton(tk.Canvas):
@@ -210,8 +210,8 @@ class TSPVisualizer:
         self.main_frame = ttk.Frame(self.root, style="TFrame", padding=15)
         self.main_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Header frame (no border)
-        self.header_frame = ttk.Frame(self.main_frame, style="TFrame")
+        # Header frame (no border) with more padding
+        self.header_frame = ttk.Frame(self.main_frame, style="TFrame", padding=(0, 0, 0, 20))
         self.header_frame.pack(fill=tk.X, pady=(0, 15))
         
         # Content frame with control panel and visualization
@@ -279,14 +279,14 @@ class TSPVisualizer:
             self.control_canvas.yview_scroll(scroll_step, "units")
     
     def create_header(self):
-        # Logo/Title area
-        logo_frame = ttk.Frame(self.header_frame, style="TFrame")
+        # Logo/Title area with more padding
+        logo_frame = ttk.Frame(self.header_frame, style="TFrame", padding=(0, 0, 20, 0))
         logo_frame.pack(side=tk.LEFT, fill=tk.Y)
         
         # Create a simple logo
         logo_canvas = tk.Canvas(logo_frame, width=50, height=50, 
                                background=self.colors["bg"], highlightthickness=0)
-        logo_canvas.pack(side=tk.LEFT, padx=(0, 10))
+        logo_canvas.pack(side=tk.LEFT, padx=(0, 15))
         
         # Draw a simple TSP-like path as logo
         points = [(10, 25), (20, 10), (30, 40), (40, 20), (10, 25)]
@@ -296,9 +296,9 @@ class TSPVisualizer:
             logo_canvas.create_oval(x-4, y-4, x+4, y+4, 
                                    fill=self.colors["accent"], outline="")
         
-        # Title
+        # Title 
         title_label = ttk.Label(logo_frame, text="TSP Algorithm Visualizer", 
-                               style="Title.TLabel")
+                               style="Title.TLabel", font=("Montserrat", 16, "bold"))
         title_label.pack(side=tk.LEFT)
         
         # Status area on the right
@@ -592,6 +592,15 @@ class TSPVisualizer:
         n = self.num_cities.get()
         self.cities = [(random.uniform(0, 100), random.uniform(0, 100)) for _ in range(n)]
         
+        # Clear any existing animation
+        self.stop_animation()
+        
+        # Clear the existing figure
+        self.fig.clf()
+        
+        # Create a single subplot for city display
+        self.ax = self.fig.add_subplot(111)
+        
         # Plot cities
         self.plot_cities()
         self.status_var.set(f"Generated {n} random cities")
@@ -699,7 +708,7 @@ class TSPVisualizer:
             self.time_var.set(f"Time: {self.solving_time:.2f}s")
         
         # Import the visualization function from the animation module
-        from animation.brute_force import visualize_brute_force
+        from animation.BruteForce import visualize_brute_force
         
         try:
             # Create a TSPSolver instance with the current cities
@@ -767,7 +776,7 @@ class TSPVisualizer:
             self.solving_time = time
         
         # Import the visualization function from the animation module
-        from animation.nearest_neighbor import visualize_nearest_neighbor
+        from animation.NearestNeighbor import visualize_nearest_neighbor
         
         try:
             # Create a TSPSolver instance with the current cities
@@ -816,18 +825,18 @@ class TSPVisualizer:
         
         # Define custom styling that matches our application's style
         custom_style = {
-            'fig_size': (8, 6),
+            'fig_size': (10, 5),  # Reduced from (8, 6) to make it more compact
             'background_color': self.colors["panel"],
             'plot_bg_color': '#f8f8f8',
             'city_color': self.colors["accent"],
-            'path_color': self.colors["genetic"],
+            'path_color': 'red',  
             'current_city_color': 'green',
-            'city_size': 120,  # Match the size used in plot_cities
+            'city_size': 80,  
             'city_edge_color': 'white',
             'city_edge_width': 2,
             'city_alpha': 0.8,
-            'font_size': 9,
-            'animation_interval': 200,  # Match animate_tsp
+            'font_size': 8,
+            'animation_interval': 200,
             'repeat': False,
             'grid_alpha': 0.3,
             'grid_color': 'gray',
@@ -836,10 +845,10 @@ class TSPVisualizer:
             'x_max': 105,
             'y_min': -5,
             'y_max': 105,
-            'title_size': 18,
+            'title_size': 14,  # Reduced from 18
             'title': "TSP Genetic Algorithm Solution",
-            'label_size': 14,
-            'legend_size': 8,
+            'label_size': 10,  # Reduced from 14
+            'legend_size': 7,  # Reduced from 8
             'legend_loc': 'lower right'
         }
 
@@ -862,8 +871,7 @@ class TSPVisualizer:
                 pop_size=self.population_size.get(),
                 generations=self.generations.get(),
                 mutation_rate=self.mutation_rate.get(),
-                visualize_steps=True,
-                max_paths_to_store=20
+                visualize_steps=True
             )
             self.solving_time = time.time() - start_time  # This is the actual algorithm runtime
             
@@ -880,108 +888,80 @@ class TSPVisualizer:
             # Create a figure with two subplots: tour on left, fitness on right
             self.ax_tour = self.fig.add_subplot(121)
             self.ax_fitness = self.fig.add_subplot(122)
-
-            # Initialize the fitness plot (distance over generations)
-            generations = list(range(len(tsp_solver.path_distances)))
-            distances = tsp_solver.path_distances
-            self.ax_fitness.plot(generations, distances, 'b-', label='Best Distance')
-            self.ax_fitness.set_xlabel('Sampled Generation', fontsize=custom_style['label_size'])
-            self.ax_fitness.set_ylabel('Distance', fontsize=custom_style['label_size'])
-            self.ax_fitness.set_title('Genetic Algorithm Convergence', fontsize=custom_style['title_size'])
-            self.ax_fitness.grid(True, linestyle=custom_style['grid_linestyle'], 
-                                 alpha=custom_style['grid_alpha'], color=custom_style['grid_color'])
-            self.ax_fitness.legend(fontsize=custom_style['legend_size'], loc=custom_style['legend_loc'])
-
-            # Calculate frames: for each path, animate city-to-city movement
-            frames_per_path = tsp_solver.num_cities + 1  # +1 for the return to start
-            total_frames = len(tsp_solver.all_paths) * frames_per_path
+            
+            # Adjust subplot spacing
+            self.fig.subplots_adjust(left=0.1, right=0.95, bottom=0.15, top=0.9, wspace=0.3)
+            
+            # Calculate frames: one per discovered path
+            total_frames = len(tsp_solver.all_paths)
             
             # Animation update function
             def update(frame):
-                # Clear the tour plot for the new frame
+                # Clear all plots for the new frame
                 self.ax_tour.clear()
+                self.ax_fitness.clear()
                 
-                # Determine which path and segment we're animating
-                path_idx = frame // frames_per_path
-                segment_idx = frame % frames_per_path
-
-                # Get the current path and coordinates
+                # Get the current path and its generation
+                path_idx = frame
                 path = tsp_solver.all_paths[path_idx]
                 path_coords = tsp_solver.coordinates[list(path)]
+                gen_idx = tsp_solver.path_generations[path_idx]
+                # Use a consistent color for the path instead of the gradient
+                color = custom_style['path_color']
 
-                # Identify the current city index in the path
-                current_city_idx = path[segment_idx] if segment_idx < len(path) else None
-
-                # Create a mask to exclude the current city from the scatter plot
-                mask = np.ones(len(tsp_solver.coordinates), dtype=bool)
-                if current_city_idx is not None:
-                    mask[current_city_idx] = False
-
-                # Plot all cities except the current one as blue circles
-                self.ax_tour.scatter(tsp_solver.coordinates[mask, 0], tsp_solver.coordinates[mask, 1], 
+                # Plot all cities
+                self.ax_tour.scatter(tsp_solver.coordinates[:, 0], tsp_solver.coordinates[:, 1], 
                                      c=custom_style['city_color'], s=custom_style['city_size'], 
                                      edgecolors=custom_style['city_edge_color'], 
                                      linewidths=custom_style['city_edge_width'], 
                                      alpha=custom_style['city_alpha'], label='Cities')
                 
-                # Annotate city indices
-                for i, (x, y) in enumerate(tsp_solver.coordinates):
-                    self.ax_tour.annotate(f"{i}", (x, y), fontsize=custom_style['font_size'],
-                                         ha='center', va='center', color='white', fontweight='bold')
-                
-                # Calculate color based on generation (lighter for early, darker for later)
-                progress = path_idx / (len(tsp_solver.all_paths) - 1) if len(tsp_solver.all_paths) > 1 else 1
-                color = (1 - progress * 0.5, 0, progress * 0.5)  # Light red to dark red
+                # Draw the current path
+                closed_path_coords = np.vstack([path_coords, path_coords[0]])
+                self.ax_tour.plot(closed_path_coords[:, 0], closed_path_coords[:, 1], 
+                              color=color, linestyle='-', linewidth=2, label='Current Path',
+                              zorder=2)
 
-                # Draw the path
-                if segment_idx == frames_per_path - 1:  # Last frame: close the loop
-                    # Append the first city to the end to close the loop
-                    closed_path_coords = np.vstack([path_coords, path_coords[0]])
-                    self.ax_tour.plot(closed_path_coords[:, 0], closed_path_coords[:, 1], 
-                                  color=color, linestyle='-', linewidth=2, label='Tour')
-                elif segment_idx > 0:  # Intermediate frames: draw partial path
-                    partial_path_coords = path_coords[:segment_idx]
-                    self.ax_tour.plot(partial_path_coords[:, 0], partial_path_coords[:, 1], 
-                                  color=color, linestyle='-', linewidth=2, label='Tour')
-
-                # Plot the current city as a green star
-                if segment_idx < len(path):
-                    current_city = path_coords[segment_idx]
+                # Only show the start city (green star) if this is not the final frame
+                if frame != total_frames - 1:
+                    current_city = path_coords[0]
                     self.ax_tour.scatter(current_city[0], current_city[1], c=custom_style['current_city_color'], 
-                                         s=custom_style['city_size'] * 1.5, marker='*', label='Current City')
+                                         s=custom_style['city_size'] * 1.5, marker='*', label='Start City',
+                                         zorder=3)
 
                 # Update title with generation and distance
-                self.ax_tour.set_title(f'Generation {path_idx+1}/{len(tsp_solver.all_paths)} - '
-                                      f'Distance: {tsp_solver.path_distances[path_idx]:.2f}',
+                self.ax_tour.set_title(f'Generation {gen_idx+1}',
                                       fontsize=custom_style['title_size'])
                 self.ax_tour.set_xlabel('X Coordinate', fontsize=custom_style['label_size'])
                 self.ax_tour.set_ylabel('Y Coordinate', fontsize=custom_style['label_size'])
                 self.ax_tour.grid(True, linestyle=custom_style['grid_linestyle'], 
                                   alpha=custom_style['grid_alpha'], color=custom_style['grid_color'])
                 self.ax_tour.legend(fontsize=custom_style['legend_size'], loc=custom_style['legend_loc'])
-                self.ax_tour.set_xlim(custom_style['x_min'], custom_style['x_max'])
-                self.ax_tour.set_ylim(custom_style['y_min'], custom_style['y_max'])
 
-                # Update fitness plot
-                self.ax_fitness.clear()
+                # Update fitness plot (convergence)
+                generations = list(range(len(tsp_solver.generation_best_distances)))
+                distances = tsp_solver.generation_best_distances
                 self.ax_fitness.plot(generations, distances, 'b-', label='Best Distance')
-                self.ax_fitness.scatter([path_idx], [distances[path_idx]], c='red', s=custom_style['city_size'], 
+                # Always show the red dot for the current generation
+                self.ax_fitness.scatter([gen_idx], [distances[gen_idx]], c='red', s=custom_style['city_size'], 
                                        marker='o', label='Current Generation')
-                self.ax_fitness.set_xlabel('Sampled Generation', fontsize=custom_style['label_size'])
+                self.ax_fitness.set_xlabel('Generation', fontsize=custom_style['label_size'])
                 self.ax_fitness.set_ylabel('Distance', fontsize=custom_style['label_size'])
-                self.ax_fitness.set_title('Genetic Algorithm Convergence', fontsize=custom_style['title_size'])
+                self.ax_fitness.set_title('Convergence', fontsize=custom_style['title_size'])
                 self.ax_fitness.grid(True, linestyle=custom_style['grid_linestyle'], 
                                      alpha=custom_style['grid_alpha'], color=custom_style['grid_color'])
                 self.ax_fitness.legend(fontsize=custom_style['legend_size'], loc=custom_style['legend_loc'])
                 
-                # Update dynamic status - always show the actual solving time, not animation time
+                # Update dynamic status
                 distance = tsp_solver.path_distances[path_idx]
-
-                # If last frame, show best solution
                 if frame == total_frames - 1:
                     update_status("Best Solution Found", self.best_distance, self.solving_time)
                 else:
-                    update_status(f"Generation {path_idx+1}", distance, self.solving_time)
+                    update_status(f"Generation {gen_idx+1}", distance, self.solving_time)
+
+                # Set consistent axis limits
+                self.ax_tour.set_xlim(custom_style['x_min'], custom_style['x_max'])
+                self.ax_tour.set_ylim(custom_style['y_min'], custom_style['y_max'])
 
             # Create the animation
             ani = FuncAnimation(self.fig, update, frames=total_frames, 

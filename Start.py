@@ -693,17 +693,22 @@ class TSPVisualizer:
         self.status_var.set("Running Brute Force algorithm...")
         
         # Function to update status in the UI
-        def update_status(title, distance, time):
+        def update_status(title, distance, _):
             self.status_var.set(title)
             self.distance_var.set(f"Distance: {distance:.2f}")
-            self.time_var.set(f"Time: {time:.2f}s")
+            self.time_var.set(f"Time: {self.solving_time:.2f}s")
         
         # Import the visualization function from the animation module
         from animation.brute_force import visualize_brute_force
         
         try:
-            # Measure actual solving time
+            # Create a TSPSolver instance with the current cities
+            tsp_solver = TSPSolver(coordinates=self.cities)
+            
+            # Run the brute force algorithm and measure the solving time
             start_time = time.time()
+            path, distance = tsp_solver.solve_brute_force(visualize_steps=True)
+            self.solving_time = time.time() - start_time  # This is the actual algorithm runtime
             
             # Use the external visualization function, but with our figure/axes
             ani = visualize_brute_force(
@@ -714,9 +719,6 @@ class TSPVisualizer:
                 ax=self.ax,
                 update_status_callback=update_status
             )
-            
-            # Store the actual solving time
-            self.solving_time = time.time() - start_time
             
             # Store the animation object so we can stop it later
             self.animation = ani
@@ -761,13 +763,20 @@ class TSPVisualizer:
             self.status_var.set(title)
             self.distance_var.set(f"Distance: {distance:.2f}")
             self.time_var.set(f"Time: {time:.2f}s")
+            # Store the solving time
+            self.solving_time = time
         
         # Import the visualization function from the animation module
         from animation.nearest_neighbor import visualize_nearest_neighbor
         
         try:
-            # Measure actual solving time
+            # Create a TSPSolver instance with the current cities
+            tsp_solver = TSPSolver(coordinates=self.cities)
+            
+            # Run the nearest neighbor algorithm and measure the solving time
             start_time = time.time()
+            path, distance = tsp_solver.solve_nearest_neighbor(visualize_steps=True)
+            self.solving_time = time.time() - start_time  # This is the actual algorithm runtime
             
             # Use the external visualization function, but with our figure/axes
             ani = visualize_nearest_neighbor(
@@ -778,9 +787,6 @@ class TSPVisualizer:
                 ax=self.ax,
                 update_status_callback=update_status
             )
-            
-            # Store the actual solving time
-            self.solving_time = time.time() - start_time
             
             # Store the animation object so we can stop it later
             self.animation = ani

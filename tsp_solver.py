@@ -126,7 +126,11 @@ class TSPSolver:
         if visualize_steps:
             self.all_paths = []
             self.path_distances = []
-            sample_indices = set(np.linspace(0, generations-1, min(max_paths_to_store, generations), dtype=int))
+            count = min(max_paths_to_store, generations)
+            if count > 0:
+                sample_indices = set(np.linspace(0, generations-1, count, dtype=int))
+            else:
+                sample_indices = set()
         
         for generation in range(generations):
             # Sort population by fitness
@@ -192,8 +196,11 @@ class TSPSolver:
         if visualize_steps:
             best_paths = []
             best_distances = []
-            sample_indices = set(np.linspace(0, total_perms-1, min(max_paths_to_store//2, total_perms), 
-                                         dtype=int))
+            count = min(max_paths_to_store//2, total_perms)
+            if count > 0:
+                sample_indices = set(np.linspace(0, total_perms-1, count, dtype=int))
+            else:
+                sample_indices = set()
             
         for idx, path in enumerate(itertools.permutations(cities)):
             full_path = (0,) + path + (0,)
@@ -240,6 +247,7 @@ class TSPSolver:
         current_city = start_city
         unvisited.remove(current_city)
         total_distance = 0
+        start_time = time.time()
         
         if visualize_steps:
             self.all_paths = []
@@ -260,9 +268,12 @@ class TSPSolver:
         path.append(start_city)
         total_distance += self.distances[current_city][start_city]
 
+                
+        end_time = time.time()
         self.best_path = tuple(path)
         self.best_distance = total_distance
         
+        print(f"Nearest Neighbor time: {end_time - start_time:.4f} seconds")
         print(f"Nearest Neighbor distance: {total_distance:.2f}")
         
         return self.best_path, self.best_distance

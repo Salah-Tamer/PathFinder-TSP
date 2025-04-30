@@ -156,9 +156,6 @@ def visualize_brute_force(coordinates=None, custom_style=None, show_plot=False, 
     # Dynamic elements
     city_markers = []
     
-    # Arrow directions for current path (will be updated)
-    arrows = []
-    
     # Track the best distance found so far
     best_so_far = float('inf')
 
@@ -192,11 +189,6 @@ def visualize_brute_force(coordinates=None, custom_style=None, show_plot=False, 
         ax.legend(handles=[city_dot, path_line, best_path_line], 
                 loc=style['legend_loc'], framealpha=0.9, frameon=True, fontsize=style['legend_size'])
         line.set_data([], [])
-        
-        # Clear any existing arrows
-        for arrow in arrows:
-            arrow.remove()
-        arrows.clear()
         
         # Clear any existing city markers
         for marker in city_markers:
@@ -245,33 +237,16 @@ def visualize_brute_force(coordinates=None, custom_style=None, show_plot=False, 
         line.set_color(color)
         line.set_linewidth(lw)
 
-        # Clear arrows and markers
-        for arrow in arrows:
-            arrow.remove()
-        arrows.clear()
+        # Clear markers
         for marker in city_markers:
             marker.remove()
         city_markers.clear()
 
-        # Add arrows and markers
-        for i in range(len(path)-1):
-            x1, y1 = path_coords[i]
-            x2, y2 = path_coords[i+1]
-            dx, dy = x2-x1, y2-y1
-            
-            # Calculate length for scaling
-            length = np.sqrt(dx**2 + dy**2)
-            scale = 0.8 if length > 20 else 0.6
-            
-            # Create and store arrow
-            arrow = ax.arrow(x1, y1, dx*scale, dy*scale, 
-                           head_width=2, head_length=3, 
-                           fc=color, ec=color, zorder=15)
-            arrows.append(arrow)
-            if i > 0:
-                # Add small circle markers at city points without numeric labels
-                marker = ax.add_patch(plt.Circle((x1, y1), 1.5, color=color, zorder=20))
-                city_markers.append(marker)
+        # Add markers at city points
+        for i in range(len(path)):
+            x, y = path_coords[i]
+            marker = ax.add_patch(plt.Circle((x, y), 1.5, color=color, zorder=20))
+            city_markers.append(marker)
 
         # Update text
         title_text.set_text(title)
@@ -311,8 +286,8 @@ def visualize_brute_force(coordinates=None, custom_style=None, show_plot=False, 
         if best_text:
             return_elements.append(best_text)
             
-        # Add all arrows to return elements
-        return_elements.extend(arrows)
+        # Add all markers to return elements
+        return_elements.extend(city_markers)
         
         return return_elements
 

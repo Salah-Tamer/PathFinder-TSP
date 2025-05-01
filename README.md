@@ -20,8 +20,6 @@ The number of unique routes for ( n ) cities is ( (n-1)! / 2 ), making brute for
 
 We also optimized the visualization by limiting the number of excessively large paths, storing some of the best discovered paths while filtering out poor random ones to improve clarity and avoid overwhelming the user.
 
-We also made a 
-
 ## Requirements
 
 - Python 3.6+

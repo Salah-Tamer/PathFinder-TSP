@@ -5,6 +5,12 @@ The Traveling Salesman Problem (TSP) is an NP-hard problem that is computational
 
 Due to its complexity, exact solutions for large TSP instances are infeasible with current computational resources. However, various approaches exist to tackle the problem, including exact algorithms like dynamic programming for smaller instances, and heuristic or approximation algorithms, such as nearest neighbor, genetic algorithms for larger instances. These methods trade optimality for providing near-optimal solutions in reasonable time.
 
+## About the Program
+
+An interactive Python application designed to visualize and compare different approaches for solving the Traveling Salesman Problem. Users can choose from three algorithms [Brute Force, Nearest Neighbour, and Genetic Algorithm] while adjusting parameters like the number of cities and animation speed. 
+
+The program provides real-time feedback through animated routes, distance calculations, and graphical indicators, helping users intuitively understand how each algorithm performs. Whether for educational purposes or experimentation.
+
 ## Solutions
 We used two of approximation algorithms nearest neighbor and genetic algorithms where it tries to find near-optimal solution and we also tried the brute force solution that gurantees to find the optimal path
 
@@ -36,6 +42,13 @@ A population-based metaheuristic inspired by the principles of natural selection
 
 Rather than working with a single candidate like Nearest Neighbour, GA maintains diversity and explores multiple regions of the solution space simultaneously, helping it escape local optima.
 
+## Features 
+
+- Step-by-step visualization of the Nearest Neighbor algorithm.
+- Animated movement between cities.
+- Displays current distance and best path.
+- Includes graphical enhancements for clarity and better user experience.
+
 ## Requirements
 
 - Python 3.6+
@@ -62,10 +75,3 @@ pip install -r requirements.txt
 ```bash
 python Init.py
 ```
-
-## Features 
-
-- Step-by-step visualization of the Nearest Neighbor algorithm.
-- Animated movement between cities.
-- Displays current distance and best path.
-- Includes graphical enhancements for clarity and better user experience.

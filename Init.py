@@ -595,10 +595,8 @@ class TSPVisualizer:
         # Clear any existing animation
         self.stop_animation()
         
-        # Clear the existing figure
+        # Clear the existing figure completely
         self.fig.clf()
-        
-        # Create a single subplot for city display
         self.ax = self.fig.add_subplot(111)
         
         # Plot cities
@@ -646,8 +644,24 @@ class TSPVisualizer:
         
         self.stop_animation()  # Stop any existing animation
         
+        # Clear the existing figure completely
+        self.fig.clf()
+        
         algorithm = self.current_algorithm.get()
         self.status_var.set(f"Running {algorithm}...")
+        
+        # Reset any stored axes from genetic algorithm to avoid layout issues
+        if hasattr(self, 'ax_tour'):
+            delattr(self, 'ax_tour')
+        if hasattr(self, 'ax_fitness'):
+            delattr(self, 'ax_fitness')
+        
+        # For genetic algorithm, we don't create the axes here since it needs a special layout
+        # with two subplots. For other algorithms, we create a single subplot.
+        if algorithm != "Genetic Algorithm":
+            self.ax = self.fig.add_subplot(111)
+            # Reset figure layout to default (remove any previous adjustments)
+            self.fig.subplots_adjust(left=0.125, right=0.9, bottom=0.1, top=0.9, wspace=0.2, hspace=0.2)
         
         if algorithm == "Brute Force":
             self.run_brute_force()
@@ -825,7 +839,7 @@ class TSPVisualizer:
         
         # Define custom styling that matches our application's style
         custom_style = {
-            'fig_size': (12, 7),  # Increased both width and height for better proportions
+            'fig_size': (10, 6), 
             'background_color': self.colors["panel"],
             'plot_bg_color': '#f8f8f8',
             'city_color': self.colors["accent"],
@@ -835,7 +849,7 @@ class TSPVisualizer:
             'city_edge_color': 'white',
             'city_edge_width': 2,
             'city_alpha': 0.8,
-            'font_size': 10,  # Slightly increased font size
+            'font_size': 10,
             'animation_interval': 200,
             'repeat': False,
             'grid_alpha': 0.3,
@@ -845,10 +859,10 @@ class TSPVisualizer:
             'x_max': 105,
             'y_min': -5,
             'y_max': 105,
-            'title_size': 16,  # Increased title size
+            'title_size': 16,
             'title': "TSP Genetic Algorithm Solution",
-            'label_size': 12,  # Increased label size
-            'legend_size': 9,  # Increased legend size
+            'label_size': 12,
+            'legend_size': 9,
             'legend_loc': 'lower right'
         }
 
@@ -882,15 +896,14 @@ class TSPVisualizer:
             if not tsp_solver.all_paths:
                 raise ValueError("No paths available for animation. Ensure solve_genetic was run with visualize_steps=True.")
             
-            # Clear the existing figure
-            self.fig.clf()
-            
-            # Create a figure with two subplots: tour on left, fitness on right
-            self.ax_tour = self.fig.add_subplot(121)
-            self.ax_fitness = self.fig.add_subplot(122)
+            # Create the subplots for genetic algorithm
+            # Note: The figure was already cleared in run_algorithm
+            gs = gridspec.GridSpec(1, 2, width_ratios=[1, 1])
+            self.ax_tour = self.fig.add_subplot(gs[0])
+            self.ax_fitness = self.fig.add_subplot(gs[1])
             
             # Adjust subplot spacing to make more room for labels and improve layout
-            self.fig.subplots_adjust(left=0.08, right=0.92, bottom=0.15, top=0.85, wspace=0.4)
+            self.fig.subplots_adjust(left=0.1, right=0.9, bottom=0.15, top=0.9, wspace=0.3)
             
             # Calculate frames: one per discovered path
             total_frames = len(tsp_solver.all_paths)
@@ -968,7 +981,6 @@ class TSPVisualizer:
             self.animation = ani
             
             # Update the matplotlib figure in our canvas
-            self.fig.tight_layout()
             self.canvas.draw()
             
             # Enable resizing support - redraw canvas if window is resized
@@ -981,25 +993,9 @@ class TSPVisualizer:
             messagebox.showerror("Error", f"Failed to run Genetic Algorithm: {str(e)}")
             self.status_var.set("Ready")
     
-    def get_gradient_color(self, start_color, end_color, ratio):
-        """Generate a color along a gradient between start and end colors"""
-        # Convert hex to RGB
-        start_rgb = mcolors.hex2color(start_color)
-        end_rgb = mcolors.hex2color(end_color)
-        
-        # Interpolate
-        r = start_rgb[0] + (end_rgb[0] - start_rgb[0]) * ratio
-        g = start_rgb[1] + (end_rgb[1] - start_rgb[1]) * ratio
-        b = start_rgb[2] + (end_rgb[2] - start_rgb[2]) * ratio
-        
-        return (r, g, b)
-    
     def stop_animation(self):
         if self.animation:
-            try:
-                self.animation.event_source.stop()
-            except:
-                pass  # Animation may not have an event_source
+            self.animation.event_source.stop()
             self.animation = None
     
     def clear(self):
@@ -1008,8 +1004,20 @@ class TSPVisualizer:
         self.status_var.set("Ready")
         self.time_var.set("Time: 0.00s")
         self.distance_var.set("Distance: 0.00")
+        
+        # Clear the figure and create a new single subplot
         self.fig.clf()
         self.ax = self.fig.add_subplot(111)
+        
+        # Reset any stored axes from genetic algorithm
+        if hasattr(self, 'ax_tour'):
+            delattr(self, 'ax_tour')
+        if hasattr(self, 'ax_fitness'):
+            delattr(self, 'ax_fitness')
+        
+        # Reset figure layout to default
+        self.fig.subplots_adjust(left=0.125, right=0.9, bottom=0.1, top=0.9, wspace=0.2, hspace=0.2)
+            
         self.show_welcome_screen()
 
 # Run the application

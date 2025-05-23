@@ -58,13 +58,11 @@ class TSPSolver:
     
     def select_parents(self, population, method='tournament'):
         if method == 'tournament':
-            # Make tournament size proportional to population size
             tournament_size = max(2, min(8, int(len(population) * 0.1)))
             parents = []
             for _ in range(2):
                 contestants = random.sample(population, tournament_size)
-                # Reduce chance of selecting second best to 20%
-                if random.random() < 0.2:  # 20% chance to select second best
+                if random.random() < 0.2:
                     contestants = sorted(contestants, key=lambda x: self.calculate_distance(x))
                     parents.append(contestants[1])
                 else:
@@ -245,13 +243,6 @@ class TSPSolver:
     
     # Nearest Neighbor Method
     def solve_nearest_neighbor(self, start_city=0, visualize_steps=False):
-        """
-        Solve TSP using nearest neighbor heuristic
-        
-        Args:
-            start_city: Index of the starting city (default is 0)
-            visualize_steps: If True, store paths for step-by-step visualization
-        """
         unvisited = set(range(self.num_cities))
         path = [start_city]
         current_city = start_city
@@ -290,13 +281,6 @@ class TSPSolver:
     
     # Unified solve method
     def solve(self, method='genetic', **kwargs):
-        """
-        Unified solve method that calls appropriate algorithm
-        
-        Args:
-            method: 'genetic', 'brute_force', or 'nearest_neighbor'
-            **kwargs: Additional arguments for specific algorithms
-        """
         if method == 'genetic':
             return self.solve_genetic(**kwargs)
         elif method == 'brute_force':
@@ -313,7 +297,6 @@ class TSPSolver:
                                     visualize_steps)
     
     def get_solution_info(self):
-        """Return a dictionary with solution information"""
         if self.best_path is None:
             return {"error": "No solution available. Run a solve method first."}
             
@@ -350,7 +333,6 @@ class TSPSolver:
         plt.show()
 
     def animate_solution(self, save_path=None):
-        """Create an animation of the solution process"""
         if not self.all_paths:
             print("No paths available for animation. Run solve with visualize_steps=True.")
             return

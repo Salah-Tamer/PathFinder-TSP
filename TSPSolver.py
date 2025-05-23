@@ -262,13 +262,20 @@ class TSPSolver:
             unvisited.remove(current_city)
             
             if visualize_steps:
-                temp_path = path + [start_city]
+                # For visualization, create a temporary path that includes return to start
+                temp_path = path.copy()
+                temp_distance = total_distance
+                
+                # Add return to start city for visualization
+                temp_path.append(start_city)
+                temp_distance += self.distances[current_city][start_city]
+                
                 self.all_paths.append(tuple(temp_path))
-                self.path_distances.append(total_distance + self.distances[current_city][start_city])
+                self.path_distances.append(temp_distance)
         
-        path.append(start_city)
+        # Add the return to start city to complete the circuit
         total_distance += self.distances[current_city][start_city]
-
+        path.append(start_city)
                 
         end_time = time.time()
         self.best_path = tuple(path)

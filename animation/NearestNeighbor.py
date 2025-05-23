@@ -169,40 +169,27 @@ def visualize_nearest_neighbor(coordinates=None, custom_style=None, show_plot=Fa
     def update(frame):
         path = solver.all_paths[frame]
         distance = solver.path_distances[frame]
-        current_path_length = min(frame + 2, len(path))
-        current_path = list(path[:current_path_length])
-        path_coords = coords_array[current_path]
-
-        # Update path line data
+        path_coords = coords_array[list(path)]
         path_line.set_data(path_coords[:, 0], path_coords[:, 1])
 
         # Clear all markers first to avoid artifacts
         current_marker.set_offsets(np.empty((0, 2)))
         next_marker.set_offsets(np.empty((0, 2)))
 
-        # Only then set new marker positions
-        if len(current_path) >= 2:
-            if frame < len(solver.all_paths) - 1:
-                current_city_idx = current_path[-1]
-                current_pos = coords_array[current_city_idx].reshape(1, 2)
-                current_marker.set_offsets(current_pos)
-            else:
-                # On the last frame, do not show any markers
-                current_marker.set_offsets(np.empty((0, 2)))
-                next_marker.set_offsets(np.empty((0, 2)))
-                return path_line, current_marker, next_marker, title_text, progress_text
+        is_final_frame = frame == len(solver.all_paths) - 1
         
-        if frame < len(solver.all_paths) - 1:
-            next_path = solver.all_paths[frame + 1]
-            next_city_idx = next_path[current_path_length] if current_path_length < len(next_path) else path[0]
+        if not is_final_frame:
+            # Show current city marker
+            current_city_idx = path[-2]  # The last city before returning to start
+            current_pos = coords_array[current_city_idx].reshape(1, 2)
+            current_marker.set_offsets(current_pos)
+            
+            next_city_idx = path[-1]  # This is the start city for return
             next_pos = coords_array[next_city_idx].reshape(1, 2)
             next_marker.set_offsets(next_pos)
-        else:
-            # On the last frame, do not show any markers
-            next_marker.set_offsets(np.empty((0, 2)))
 
         # Set title text and format
-        step_text = "Final Path" if frame == len(solver.all_paths) - 1 else f"Step {frame+1}/{len(solver.all_paths)-1}"
+        step_text = "Final Path" if is_final_frame else f"Step {frame+1}/{len(solver.all_paths)}"
         title_text.set_text(f"{step_text} - Distance: {distance:.2f}")
         progress_text.set_text(f"Step {frame+1} of {len(solver.all_paths)}")
 
